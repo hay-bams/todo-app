@@ -93,7 +93,6 @@ app.put('/api/v1/todos/:title', (req, res) => {
  }
 
  db.splice(itemIndex, 1, newTodo)
-//  db.push(todo);
  return res.status(201).send({
    success: 'true',
    message: 'todo added successfully',
