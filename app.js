@@ -16,10 +16,10 @@ app.get('/api/v1/todos', (req, res) => {
   })
 });
 
-app.get('/api/v1/todos/:title', (req, res) => {
-  const title = req.params.title;
+app.get('/api/v1/todos/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
   db.map((todo) => {
-    if(todo.title === title) {
+    if(todo.id === id) {
       return res.status(200).send({
         success: 'true',
         message: 'todo retrieved successfully',
@@ -46,6 +46,7 @@ app.post('/api/v1/todos', (req, res) => {
     });
   }
  const todo = {
+   id: db.length + 1,
    title: req.body.title,
    description: req.body.description
  }
@@ -58,12 +59,12 @@ app.post('/api/v1/todos', (req, res) => {
 });
 
 
-app.put('/api/v1/todos/:title', (req, res) => {
-  const title = req.params.title;
+app.put('/api/v1/todos/:id', (req, res) => {
+  const id = parseInt(req.params.id);
   let todoFound;
   let itemIndex;
   db.map((todo, index) => {
-    if(todo.title === title) {
+    if(todo.id === id) {
       todoFound = todo;
       itemIndex = index
     }
@@ -88,6 +89,7 @@ app.put('/api/v1/todos/:title', (req, res) => {
     });
   }
  const newTodo = {
+   id: todoFound.id,
    title: req.body.title || todoFound.title,
    description: req.body.description || todoFound.description
  }
