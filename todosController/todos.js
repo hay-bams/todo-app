@@ -1,30 +1,47 @@
 /* eslint-disable class-methods-use-this */
-import db from '../db/db';
+/* eslint-disable consistent-return */
+import mongodb from 'mongodb';
+import Todo from '../model/model';
+
+const { ObjectID } = mongodb;
 
 class TodosController {
   getAllTodos(req, res) {
-    return res.status(200).send({
-      success: 'true',
-      message: 'todos retrieved successfully',
-      todos: db,
-    });
+    Todo.find()
+      .then(todos => res.status(200).send({
+        success: 'true',
+        message: 'todos retrieved successfully',
+        todos,
+      }));
   }
 
   getTodo(req, res) {
-    const id = parseInt(req.params.id, 10);
-    db.map((todo) => {
-      if (todo.id === id) {
+    const { id } = req.params;
+    if (!ObjectID.isValid(id)) {
+      return res.status(400).send({
+        success: 'false',
+        message: 'Id is not valid',
+      });
+    }
+    Todo.findOne({
+      _id: id,
+    }).then((todo) => {
+      if (todo) {
         return res.status(200).send({
           success: 'true',
           message: 'todo retrieved successfully',
           todo,
         });
       }
-    });
-    return res.status(404).send({
+      return res.status(404).send({
+        success: 'false',
+        message: 'todo does not exist',
+      });
+    }).catch(err => res.status(500).send({
       success: 'false',
-      message: 'todo does not exist',
-    });
+      message: 'Internal server error',
+      err,
+    }));
   }
 
   createTodo(req, res) {
@@ -39,34 +56,29 @@ class TodosController {
         message: 'description is required',
       });
     }
-    const todo = {
-      id: db.length + 1,
+    const newTodo = {
       title: req.body.title,
       description: req.body.description,
     };
-    db.push(todo);
-    return res.status(201).send({
-      success: 'true',
-      message: 'todo added successfully',
-      todo,
-    });
+    const todo = new Todo(newTodo);
+    todo.save()
+      .then(theTodo => res.status(201).send({
+        success: 'true',
+        message: 'todo added successfully',
+        theTodo,
+      }))
+      .catch(() => res.status(500).send({
+        success: 'false',
+        message: 'Internal server error',
+      }));
   }
 
   updateTodo(req, res) {
-    const id = parseInt(req.params.id, 10);
-    let todoFound;
-    let itemIndex;
-    db.map((todo, index) => {
-      if (todo.id === id) {
-        todoFound = todo;
-        itemIndex = index;
-      }
-    });
-
-    if (!todoFound) {
-      return res.status(404).send({
+    const { id } = req.params;
+    if (!ObjectID.isValid(id)) {
+      return res.status(400).send({
         success: 'false',
-        message: 'todo not found',
+        message: 'Id is not valid',
       });
     }
 
@@ -83,43 +95,52 @@ class TodosController {
     }
 
     const newTodo = {
-      id: todoFound.id,
-      title: req.body.title || todoFound.title,
-      description: req.body.description || todoFound.description,
+      title: req.body.title,
+      description: req.body.description,
     };
 
-    db.splice(itemIndex, 1, newTodo);
+    Todo.findByIdAndUpdate(id, newTodo, { new: true })
+      .then((todo) => {
+        if (!todo) {
+          return res.status(404).send({
+            success: 'false',
+            message: 'todo not found',
+          });
+        }
 
-    return res.status(201).send({
-      success: 'true',
-      message: 'todo added successfully',
-      newTodo,
-    });
+        return res.status(201).send({
+          success: 'true',
+          message: 'todo updated successfully',
+          todo,
+        });
+      }).catch(() => res.status(500).send({
+        success: 'false',
+        message: 'Internal server error',
+      }));
   }
 
   deleteTodo(req, res) {
-    const id = parseInt(req.params.id, 10);
-    let todoFound;
-    let itemIndex;
-    db.map((todo, index) => {
-      if (todo.id === id) {
-        todoFound = todo;
-        itemIndex = index;
-      }
-    });
-
-    if (!todoFound) {
-      return res.status(404).send({
+    const { id } = req.params;
+    if (!ObjectID.isValid(id)) {
+      return res.status(400).send({
         success: 'false',
-        message: 'todo not found',
+        message: 'Id is not valid',
       });
     }
-    db.splice(itemIndex, 1);
 
-    return res.status(200).send({
-      success: 'true',
-      message: 'Todo deleted successfuly',
-    });
+    Todo.findByIdAndRemove(id)
+      .then((todo) => {
+        if (!todo) {
+          return res.status(404).send({
+            success: 'false',
+            message: 'todo not found',
+          });
+        }
+        return res.status(200).send({
+          success: 'true',
+          message: 'Todo deleted successfuly',
+        });
+      });
   }
 }
 
